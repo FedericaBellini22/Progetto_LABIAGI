@@ -1,10 +1,12 @@
 #include "ros/ros.h"
 #include "std_msgs/String.h"
+#include <geometry_msgs/Twist.h>
 
 #include <sstream>
 
 int main(int argc, char **argv){
 		//inserire parametri per cmd_vel e laser_scan
+		//...
 		
 		ros::init(argc, argv, "collision_avoidance");
 		
@@ -12,17 +14,20 @@ int main(int argc, char **argv){
 		ros::Rate loop_rate(10);
 		
 		//creo il publisher per inviare i comandi di velocità
-		ros::Publisher chatter_pub = n.advertise<std_msgs::String>("chatter", 1000);
+		ros::Publisher cmd_vel_pub = n.advertise<geometry_msgs::Twist>("cmd_vel", 1000);
 		
 		ROS_INFO("Ho avviato il publisher");
 		
 		//creo il subscriber per ricevere comandi laser scan 
-		ros::Subscriber sub1 = n.subscribe("chatter", 1000, chatterCallback);
+		ros::Subscriber sub1 = n.subscribe("laser_scan", 1000, laserScanCallback);
 		
-		//creo il subscriber per i comandi di velocità
+		//creo il subscriber per ricevere comandi di velocità
+		ros::Subscriber sub2 = n.subscribe("cmd_vel", 1000, cmdVelCallback);
 		
-		
-		ROS_INFO("Inviare al topic /cmd_vel_mod il comando per far muovere il robot");
+		//pubblico il comando di velocità che non fa andare a sbattere
+		//...
+
+		ROS_INFO("Inviare al topic /cmd_vel il comando per far muovere il robot");
 		ros::spin();
 		
 		return 0;
