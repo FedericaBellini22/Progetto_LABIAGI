@@ -1,13 +1,14 @@
 <?xml version="1.0"?>
 <package format="2">
   <name>collision_avoidance</name>
-  <version>0.0.0</version>
-  <description>Collision avoidance project</description>
+  <version>0.1.0</version>
+  <description>The Collision Avoidance Project</description>
 
   <!-- One maintainer tag required, multiple allowed, one person per tag -->
   <!-- Example:  -->
   <!-- <maintainer email="jane.doe@example.com">Jane Doe</maintainer> -->
   <maintainer email="federicabellinix99@gmail.com">federicabellini</maintainer>
+  <maintainer email="ditullio.1803880@studenti.uniroma1.it">Cristiana Di Tullio</maintainer>
 
 
   <!-- One license tag required, multiple allowed, one license per tag -->
@@ -26,6 +27,8 @@
   <!-- Authors do not have to be maintainers, but could be -->
   <!-- Example: -->
   <!-- <author email="jane.doe@example.com">Jane Doe</author> -->
+  <author email="federicabellinix99@gmail.com">federicabellini</author>
+  <author email="ditullio.1803880@studenti.uniroma1.it">Cristiana Di Tullio</author>
 
 
   <!-- The *depend tags are used to specify dependencies -->
