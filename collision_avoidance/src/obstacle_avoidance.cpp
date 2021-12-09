@@ -4,6 +4,56 @@
 
 #include <sstream>
 
+bool cmd_received = false;
+geometry_msgs::Twist vel_received;
+
+void cmdVelCallback(const geometry_msgs::Twist::ConstPtr& msg){
+	
+	//ho ricevuto il comando di velocità 	
+	cmd_received = true;
+	
+	
+	vel_received =* msg;	
+
+
+}
+
+void laserScanCallback(const sensor_msgs::LaserScan::ConstPtr& msg){
+		//devo ricevere il comando di velocità
+		if (!cmd_received) 
+			return;
+
+		cmd_received = false;
+		
+		
+		tf::TransformListener listener;
+		tf::StampedTransform transform_obstacle;
+		laser_geometry::LaserProjection projector;
+		sensor_msgs::PointCloud cloud;
+		
+		//funzione che converte un messaggio di tipo laser scan ad un messaggio di tipo point cloud
+		projector.transformLaserScanToPointCloud("base_laser_link",*msg,cloud,listener);
+		
+		//try && catch
+		
+		
+		//chiama transformOperations
+		//chiama avoidanceOperations
+
+}
+
+void transformOperations(sensor_msgs::PointCloud cloud){
+	//.........
+
+}
+
+void avoidanceOperations(){
+	//TODO
+}
+
+
+
+
 int main(int argc, char **argv){
 		//inserire parametri per cmd_vel e laser_scan
 		//...
