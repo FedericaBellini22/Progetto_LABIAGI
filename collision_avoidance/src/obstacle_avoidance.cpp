@@ -1,6 +1,9 @@
 #include "ros/ros.h"
 #include "std_msgs/String.h"
 #include <geometry_msgs/Twist.h>
+#include <sensor_msgs/LaserScan.h>
+#include <tf/transform_listener.h>
+#include <laser_geometry/laser_geometry.h>
 
 #include <sstream>
 
@@ -11,11 +14,10 @@ void cmdVelCallback(const geometry_msgs::Twist::ConstPtr& msg){
 	
 	//ho ricevuto il comando di velocità 	
 	cmd_received = true;
-	
+
 	
 	vel_received =* msg;	
-
-
+	ROS_INFO("Ho ricevuto il comando %f%f",)
 }
 
 void laserScanCallback(const sensor_msgs::LaserScan::ConstPtr& msg){
