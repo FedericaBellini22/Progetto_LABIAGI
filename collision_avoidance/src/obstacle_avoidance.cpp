@@ -17,7 +17,7 @@ void cmdVelCallback(const geometry_msgs::Twist::ConstPtr& msg){
 
 	
 	vel_received =* msg;	
-	ROS_INFO("Ho ricevuto il comando %f%f",)
+	ROS_INFO("Ho ricevuto il comando!");
 }
 
 void laserScanCallback(const sensor_msgs::LaserScan::ConstPtr& msg){
