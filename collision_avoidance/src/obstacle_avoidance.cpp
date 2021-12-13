@@ -13,6 +13,8 @@
 bool cmd_received = false;
 geometry_msgs::Twist vel_received;
 
+ros::Publisher cmd_vel_pub;
+
 void cmdVelCallback(const geometry_msgs::Twist::ConstPtr& msg){
 	//ho ricevuto il comando di velocità 	
 	cmd_received = true;	
@@ -101,23 +103,30 @@ void transformOperations(sensor_msgs::PointCloud point_cloud, tf::TransformListe
 }
 
 void avoidanceOperations(float fx, float fy){
-	//TODO
+	geometry_msgs::Twist vel_final;
+	
+	//operazioni per deviare ostacolo
+	//...
+	
+	
+	
+	
+	cmd_vel_pub.publish(vel_final);
+	
 }
 
 
 
 
 int main(int argc, char **argv){
-		//inserire parametri per cmd_vel e laser_scan
-		//...
 		
 		ros::init(argc, argv, "collision_avoidance");
 		
 		ros::NodeHandle n;
 		ros::Rate loop_rate(10);
 		
-		//creo il publisher per inviare i comandi di velocità
-		ros::Publisher cmd_vel_pub = n.advertise<geometry_msgs::Twist>("cmd_vel", 1000);
+		//dico al publisher di inviare i comandi di velocità
+		cmd_vel_pub = n.advertise<geometry_msgs::Twist>("cmd_vel", 1000);
 		
 		ROS_INFO("Ho avviato il publisher");
 		
