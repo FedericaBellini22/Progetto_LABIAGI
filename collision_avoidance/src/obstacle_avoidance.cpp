@@ -42,7 +42,6 @@ void laserScanCallback(const sensor_msgs::LaserScan::ConstPtr& msg){
 		/* Chiama transformOperations(...)
 		transformOperations(cloud, listener, transform_obstacle); //OCCHIO ai parametri formali e attuali */
 		
-		//chiama avoidanceOperations
 
 }
 
@@ -53,7 +52,7 @@ void transformOperations(sensor_msgs::PointCloud point_cloud, tf::TransformListe
 		//parametri: sistema di riferimento di arrivo, sistema di riferimento di partenza, tempo, timeout
 		listener.waitForTransform("base_footprint", "base_laser_link", ros::Time(0), ros::Duration(5.0));
 		//estraggo la trasformata tra i due sistemi di riferimento e la memorizzo in transform_obstacle
-		listener.lookupTransform("base_footprint", "base_laser_link", ros::Time(0), trasform_obstacle);
+		listener.lookupTransform("base_footprint", "base_laser_link", ros::Time(0), transform_obstacle);
 	}
 	catch (tf::TransformException &e) {
 		ROS_ERROR("%s", e.what());
@@ -63,10 +62,44 @@ void transformOperations(sensor_msgs::PointCloud point_cloud, tf::TransformListe
 	Eigen::Isometry2f laser_matrix = convertPose2D(transform_obstacle);	//converto la trasformata in matrice 2D
 	
 	//...
+
+	Eigen::Vector2f obstacle_position;
+	Eigen::Vector2f obstacle_position_rframe;
+
+	float force_x = 0.0;
+	float force_y = 0.0;
+
+	for (auto& point: point_cloud.points) {	//ciclo su tutti i punti della radice
+
+		/*	
+			p_i (x,y): posa ostacolo	->	obstacle_position[2]
+			t (x,y): posa robot
+			t - p_i: direzione forza risultante			
+			1/norm(t_i - p_i): modulo forza risultante
+		*/
+
+		obstacle_position(0) = point.x;
+		obstacle_position(1) = point.y;
+		
+		obstacle_position_rframe = laser_matrix * obstacle_position;	//posizione dell'ostacolo nel robot frame, 
+
+		float obstacle_distance = sqrt(point.x * point.x + point.y * point.y);	//norm(t_i - p_i)
+		float force_mod = 1/(obstacle_distance*obstacle_distance);	//1/norm(t_i - p_i) modulo forza risultante
+		
+		force_x += obstacle_position(0) * force_mod;
+		force_y += obstacle_position(1) * force_mod;
+
+	}
+
+	force_x = -force_x;
+	force_y = -force_y;
+
+	//avoidanceOperations(force_x, force_y);
 	
+
 }
 
-void avoidanceOperations(){
+void avoidanceOperations(float fx, float fy){
 	//TODO
 }
 
