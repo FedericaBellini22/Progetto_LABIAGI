@@ -6,6 +6,7 @@
 #include <laser_geometry/laser_geometry.h>
 #include <Eigen/StdVector>
 #include <Eigen/Geometry>
+#include "geometry_utils_fd.h"
 
 #include <sstream>
 
