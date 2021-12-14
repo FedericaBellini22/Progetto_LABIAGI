@@ -10,8 +10,14 @@
 
 #include <sstream>
 
+#define CONSTANT_1 50
+
 bool cmd_received = false;
 geometry_msgs::Twist vel_received;
+
+float vel_received_x = 0;
+float vel_received_y = 0;
+float vel_received_angular = 0;
 
 ros::Publisher cmd_vel_pub;
 
@@ -19,9 +25,9 @@ void cmdVelCallback(const geometry_msgs::Twist::ConstPtr& msg){
 	//ho ricevuto il comando di velocità 	
 	cmd_received = true;	
 	vel_received = *msg;
-	float vel_received_x = msg->linear.x;
-	float vel_received_y = msg->linear.y;
-	float vel_received_angular = msg->angular.z;
+	vel_received_x = msg->linear.x;
+	vel_received_y = msg->linear.y;
+	vel_received_angular = msg->angular.z;
 	ROS_INFO("Ho ricevuto il comando!\nlinear_x = %f, linear_y = %f, angular = %f", vel_received_x, vel_received_y, vel_received_angular);
 }
 
@@ -42,8 +48,8 @@ void laserScanCallback(const sensor_msgs::LaserScan::ConstPtr& msg){
 		
 		//try && catch
 		
-		/* Chiama transformOperations(...)
-		transformOperations(cloud, listener, transform_obstacle); //OCCHIO ai parametri formali e attuali */
+		//Chiama transformOperations(...)
+		transformOperations(cloud, listener, transform_obstacle); //OCCHIO ai parametri formali e attuali
 		
 
 }
@@ -59,6 +65,7 @@ void transformOperations(sensor_msgs::PointCloud point_cloud, tf::TransformListe
 	}
 	catch (tf::TransformException &e) {
 		ROS_ERROR("%s", e.what());
+		//ros::Duration(1.0).sleep();
 		return;
 	}
 
@@ -93,24 +100,30 @@ void transformOperations(sensor_msgs::PointCloud point_cloud, tf::TransformListe
 		force_y += obstacle_position(1) * force_mod;
 
 	}
-
+	
+	//prendiamo le forze uguali in modulo ma con verso opposto per far fermare il robot
 	force_x = -force_x;
 	force_y = -force_y;
 
-	//avoidanceOperations(force_x, force_y);
+	avoidanceOperations(force_x, force_y, obstacle_distance);
 	
 
 }
 
-void avoidanceOperations(float fx, float fy){
-	geometry_msgs::Twist vel_final;
+void avoidanceOperations(float fx, float fy, float ob_dist) {
+	//messaggio per pubblicare la velocità modificata che non fa andare a sbattere il robot
+	geometry_msgs::Twist msg_final;
 	
 	//operazioni per deviare ostacolo
-	//...
+	//componenti lineari
+	msg_final.linear.x = vel_received_x;
+	msg_final.linear.y = vel_received_y; 
+	//componente angolare
+	msg_final.angular.z = fy * ob_dist * / CONSTANT_1 ;
 	
-	
-	
-	
+	ROS_INFO("Velocità angolare modificata: %f", msg_final.angular.z);
+
+	//pubblico il comando di velocità che non fa andare a sbattere
 	cmd_vel_pub.publish(vel_final);
 	
 }
@@ -136,7 +149,6 @@ int main(int argc, char **argv){
 		//creo il subscriber per ricevere comandi di velocità
 		ros::Subscriber sub2 = n.subscribe("cmd_vel", 1000, cmdVelCallback);
 		
-		//pubblico il comando di velocità che non fa andare a sbattere
 		//...
 
 		ROS_INFO("Inviare al topic /cmd_vel il comando per far muovere il robot");
