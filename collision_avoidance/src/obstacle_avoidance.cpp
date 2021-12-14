@@ -21,6 +21,88 @@ float vel_received_angular = 0;
 
 ros::Publisher cmd_vel_pub;
 
+void avoidanceOperations(float fx, float fy, float ob_dist) {
+	//messaggio per pubblicare la velocità modificata che non fa andare a sbattere il robot
+	geometry_msgs::Twist msg_final;
+	
+	//operazioni per deviare ostacolo
+	//componenti lineari
+	msg_final.linear.x = vel_received_x;
+	msg_final.linear.y = vel_received_y; 
+	//componente angolare
+	msg_final.angular.z = (fy * ob_dist) / CONSTANT_1 ;
+	
+	ROS_INFO("Velocità angolare modificata: %f", msg_final.angular.z);
+
+	//pubblico il comando di velocità che non fa andare a sbattere
+	cmd_vel_pub.publish(msg_final);
+	
+}
+
+
+
+
+void transformOperations(sensor_msgs::PointCloud point_cloud, tf::TransformListener listener, tf::StampedTransform transform_obstacle) {
+	
+	try {
+		//aspetto di avere una trasformata disponibile
+		//parametri: sistema di riferimento di arrivo, sistema di riferimento di partenza, tempo, timeout
+		listener.waitForTransform("base_footprint", "base_laser_link", ros::Time(0), ros::Duration(5.0));
+		//estraggo la trasformata tra i due sistemi di riferimento e la memorizzo in transform_obstacle
+		listener.lookupTransform("base_footprint", "base_laser_link", ros::Time(0), transform_obstacle);
+	}
+	catch (tf::TransformException &e) {
+		ROS_ERROR("%s", e.what());
+		//ros::Duration(1.0).sleep();
+		return;
+	}
+
+	Eigen::Isometry2f laser_matrix = convertPose2D(transform_obstacle);	//converto la trasformata in matrice 2D
+	
+	//...
+
+	Eigen::Vector2f obstacle_position;
+	Eigen::Vector2f obstacle_position_rframe;
+
+	float force_x = 0.0;
+	float force_y = 0.0;
+	float obstacle_distance;
+	
+	
+	for (auto& point: point_cloud.points) {	//ciclo su tutti i punti della radice
+
+		/*	
+			p_i (x,y): posa ostacolo	->	obstacle_position[2]
+			t (x,y): posa robot
+			t - p_i: direzione forza risultante			
+			1/norm(t_i - p_i): modulo forza risultante
+		*/
+
+		obstacle_position(0) = point.x;
+		obstacle_position(1) = point.y;
+		
+		obstacle_position_rframe = laser_matrix * obstacle_position;	//posizione dell'ostacolo nel robot frame, 
+
+		obstacle_distance = sqrt(point.x * point.x + point.y * point.y);	//norm(t_i - p_i)
+		float force_mod = 1/(obstacle_distance*obstacle_distance);	//1/norm(t_i - p_i) modulo forza risultante
+		
+		force_x += obstacle_position(0) * force_mod;
+		force_y += obstacle_position(1) * force_mod;
+
+	}
+	
+	//prendiamo le forze uguali in modulo ma con verso opposto per far fermare il robot
+	force_x = -force_x;
+	force_y = -force_y;
+
+	avoidanceOperations(force_x, force_y, obstacle_distance);
+	
+
+}
+
+
+
+
 void cmdVelCallback(const geometry_msgs::Twist::ConstPtr& msg){
 	//ho ricevuto il comando di velocità 	
 	cmd_received = true;	
@@ -53,81 +135,6 @@ void laserScanCallback(const sensor_msgs::LaserScan::ConstPtr& msg){
 		
 
 }
-
-void transformOperations(sensor_msgs::PointCloud point_cloud, tf::TransformListener listener, tf::StampedTransform transform_obstacle) {
-	
-	try {
-		//aspetto di avere una trasformata disponibile
-		//parametri: sistema di riferimento di arrivo, sistema di riferimento di partenza, tempo, timeout
-		listener.waitForTransform("base_footprint", "base_laser_link", ros::Time(0), ros::Duration(5.0));
-		//estraggo la trasformata tra i due sistemi di riferimento e la memorizzo in transform_obstacle
-		listener.lookupTransform("base_footprint", "base_laser_link", ros::Time(0), transform_obstacle);
-	}
-	catch (tf::TransformException &e) {
-		ROS_ERROR("%s", e.what());
-		//ros::Duration(1.0).sleep();
-		return;
-	}
-
-	Eigen::Isometry2f laser_matrix = convertPose2D(transform_obstacle);	//converto la trasformata in matrice 2D
-	
-	//...
-
-	Eigen::Vector2f obstacle_position;
-	Eigen::Vector2f obstacle_position_rframe;
-
-	float force_x = 0.0;
-	float force_y = 0.0;
-
-	for (auto& point: point_cloud.points) {	//ciclo su tutti i punti della radice
-
-		/*	
-			p_i (x,y): posa ostacolo	->	obstacle_position[2]
-			t (x,y): posa robot
-			t - p_i: direzione forza risultante			
-			1/norm(t_i - p_i): modulo forza risultante
-		*/
-
-		obstacle_position(0) = point.x;
-		obstacle_position(1) = point.y;
-		
-		obstacle_position_rframe = laser_matrix * obstacle_position;	//posizione dell'ostacolo nel robot frame, 
-
-		float obstacle_distance = sqrt(point.x * point.x + point.y * point.y);	//norm(t_i - p_i)
-		float force_mod = 1/(obstacle_distance*obstacle_distance);	//1/norm(t_i - p_i) modulo forza risultante
-		
-		force_x += obstacle_position(0) * force_mod;
-		force_y += obstacle_position(1) * force_mod;
-
-	}
-	
-	//prendiamo le forze uguali in modulo ma con verso opposto per far fermare il robot
-	force_x = -force_x;
-	force_y = -force_y;
-
-	avoidanceOperations(force_x, force_y, obstacle_distance);
-	
-
-}
-
-void avoidanceOperations(float fx, float fy, float ob_dist) {
-	//messaggio per pubblicare la velocità modificata che non fa andare a sbattere il robot
-	geometry_msgs::Twist msg_final;
-	
-	//operazioni per deviare ostacolo
-	//componenti lineari
-	msg_final.linear.x = vel_received_x;
-	msg_final.linear.y = vel_received_y; 
-	//componente angolare
-	msg_final.angular.z = fy * ob_dist * / CONSTANT_1 ;
-	
-	ROS_INFO("Velocità angolare modificata: %f", msg_final.angular.z);
-
-	//pubblico il comando di velocità che non fa andare a sbattere
-	cmd_vel_pub.publish(vel_final);
-	
-}
-
 
 
 
