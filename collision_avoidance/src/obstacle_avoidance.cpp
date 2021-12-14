@@ -1,3 +1,4 @@
+
 #include "ros/ros.h"
 #include "std_msgs/String.h"
 #include <geometry_msgs/Twist.h>
@@ -7,7 +8,6 @@
 #include <Eigen/StdVector>
 #include <Eigen/Geometry>
 #include "geometry_utils_fd.h"
-
 #include <sstream>
 
 #define CONSTANT_1 50
@@ -21,7 +21,9 @@ float vel_received_angular = 0;
 
 ros::Publisher cmd_vel_pub;
 
+
 void avoidanceOperations(float fx, float fy, float ob_dist) {
+
 	//messaggio per pubblicare la velocità modificata che non fa andare a sbattere il robot
 	geometry_msgs::Twist msg_final;
 	
@@ -40,26 +42,7 @@ void avoidanceOperations(float fx, float fy, float ob_dist) {
 }
 
 
-
-
-void transformOperations(sensor_msgs::PointCloud point_cloud, tf::TransformListener listener, tf::StampedTransform transform_obstacle) {
-	
-	try {
-		//aspetto di avere una trasformata disponibile
-		//parametri: sistema di riferimento di arrivo, sistema di riferimento di partenza, tempo, timeout
-		listener.waitForTransform("base_footprint", "base_laser_link", ros::Time(0), ros::Duration(5.0));
-		//estraggo la trasformata tra i due sistemi di riferimento e la memorizzo in transform_obstacle
-		listener.lookupTransform("base_footprint", "base_laser_link", ros::Time(0), transform_obstacle);
-	}
-	catch (tf::TransformException &e) {
-		ROS_ERROR("%s", e.what());
-		//ros::Duration(1.0).sleep();
-		return;
-	}
-
-	Eigen::Isometry2f laser_matrix = convertPose2D(transform_obstacle);	//converto la trasformata in matrice 2D
-	
-	//...
+void transformOperations(sensor_msgs::PointCloud c, Eigen::Isometry2f lm) {
 
 	Eigen::Vector2f obstacle_position;
 	Eigen::Vector2f obstacle_position_rframe;
@@ -68,8 +51,7 @@ void transformOperations(sensor_msgs::PointCloud point_cloud, tf::TransformListe
 	float force_y = 0.0;
 	float obstacle_distance;
 	
-	
-	for (auto& point: point_cloud.points) {	//ciclo su tutti i punti della radice
+	for (auto& point: c.points) {	//ciclo su tutti i punti della radice
 
 		/*	
 			p_i (x,y): posa ostacolo	->	obstacle_position[2]
@@ -81,10 +63,10 @@ void transformOperations(sensor_msgs::PointCloud point_cloud, tf::TransformListe
 		obstacle_position(0) = point.x;
 		obstacle_position(1) = point.y;
 		
-		obstacle_position_rframe = laser_matrix * obstacle_position;	//posizione dell'ostacolo nel robot frame, 
+		obstacle_position_rframe = lm * obstacle_position;	//posizione dell'ostacolo nel robot frame, 
 
 		obstacle_distance = sqrt(point.x * point.x + point.y * point.y);	//norm(t_i - p_i)
-		float force_mod = 1/(obstacle_distance*obstacle_distance);	//1/norm(t_i - p_i) modulo forza risultante
+		float force_mod = 1/(obstacle_distance * obstacle_distance);	//1/norm(t_i - p_i) modulo forza risultante
 		
 		force_x += obstacle_position(0) * force_mod;
 		force_y += obstacle_position(1) * force_mod;
@@ -96,14 +78,11 @@ void transformOperations(sensor_msgs::PointCloud point_cloud, tf::TransformListe
 	force_y = -force_y;
 
 	avoidanceOperations(force_x, force_y, obstacle_distance);
-	
-
 }
 
 
-
-
 void cmdVelCallback(const geometry_msgs::Twist::ConstPtr& msg){
+
 	//ho ricevuto il comando di velocità 	
 	cmd_received = true;	
 	vel_received = *msg;
@@ -113,7 +92,9 @@ void cmdVelCallback(const geometry_msgs::Twist::ConstPtr& msg){
 	ROS_INFO("Ho ricevuto il comando!\nlinear_x = %f, linear_y = %f, angular = %f", vel_received_x, vel_received_y, vel_received_angular);
 }
 
+
 void laserScanCallback(const sensor_msgs::LaserScan::ConstPtr& msg){
+
 		//devo ricevere il comando di velocità
 		if (!cmd_received) 
 			return;
@@ -128,14 +109,24 @@ void laserScanCallback(const sensor_msgs::LaserScan::ConstPtr& msg){
 		//funzione che converte un messaggio di tipo laser scan ad un messaggio di tipo point cloud
 		projector.transformLaserScanToPointCloud("base_laser_link",*msg,cloud,listener);
 		
-		//try && catch
+		try {
+		//aspetto di avere una trasformata disponibile
+		//parametri: sistema di riferimento di arrivo, sistema di riferimento di partenza, tempo, timeout
+		listener.waitForTransform("base_footprint", "base_laser_link", ros::Time(0), ros::Duration(5.0));
+		//estraggo la trasformata tra i due sistemi di riferimento e la memorizzo in transform_obstacle
+		listener.lookupTransform("base_footprint", "base_laser_link", ros::Time(0), transform_obstacle);
+		}
+		catch (tf::TransformException &e) {
+			ROS_ERROR("%s", e.what());
+			//ros::Duration(1.0).sleep();
+			return;
+		}
+
+		Eigen::Isometry2f laser_matrix = convertPose2D(transform_obstacle);	//converto la trasformata in matrice 2D
 		
 		//Chiama transformOperations(...)
-		transformOperations(cloud, listener, transform_obstacle); //OCCHIO ai parametri formali e attuali
-		
-
+		transformOperations(cloud, laser_matrix);
 }
-
 
 
 int main(int argc, char **argv){
@@ -162,6 +153,5 @@ int main(int argc, char **argv){
 		ros::spin();
 		
 		return 0;
-
-
 }
+
