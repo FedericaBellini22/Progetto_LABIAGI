@@ -47,7 +47,7 @@ void avoidanceOperations(float fx, float fy, float ob_dist,float fm) {
 	//componente angolare
 	msg_final.angular = vel_received.angular ;
 	
-	if (ob_dist <= 1.5){ 
+	if (ob_dist < 0.5){ 
 		ROS_INFO("sono qui1");
 		msg_final.angular.z = -fm * CONSTANT_1;
 		
