@@ -10,7 +10,7 @@
 #include "geometry_utils_fd.h"
 #include <sstream>
 
-#define CONSTANT_1 50
+#define CONSTANT_1 2
 
 bool cmd_received = false;
 geometry_msgs::Twist vel_received;
@@ -18,26 +18,54 @@ geometry_msgs::Twist vel_received;
 float vel_received_x = 0;
 float vel_received_y = 0;
 float vel_received_angular = 0;
+float force_mod = 0;
 
 ros::Publisher cmd_vel_pub;
 
 
-void avoidanceOperations(float fx, float fy, float ob_dist) {
-
+void avoidanceOperations(float fx, float fy, float ob_dist,float fm) {
+	
+	
+	ROS_INFO("CIAOOOO1");
+	
 	//messaggio per pubblicare la velocità modificata che non fa andare a sbattere il robot
 	geometry_msgs::Twist msg_final;
 	
+	msg_final.linear.x = vel_received_x + fx;
+	
+	
+	//azzero la velocità in prossimità dell'ostacolo
+	if (signbit(msg_final.linear.x) != signbit(vel_received_x))
+		msg_final.linear.x = 0;
+	
 	//operazioni per deviare ostacolo
 	//componenti lineari
-	msg_final.linear.x = vel_received_x;
-	msg_final.linear.y = vel_received_y; 
-	//componente angolare
-	msg_final.angular.z = (fy * ob_dist) / CONSTANT_1 ;
 	
-	ROS_INFO("Velocità angolare modificata: %f", msg_final.angular.z);
+	msg_final.linear.y = vel_received_y + fy;
+	msg_final.linear.z = vel_received.linear.z;
+	 
+	//componente angolare
+	msg_final.angular = vel_received.angular ;
+	
+	if (ob_dist <= 1.5){ 
+		ROS_INFO("sono qui1");
+		msg_final.angular.z = -fm * CONSTANT_1;
+		
+		cmd_vel_pub.publish(msg_final);
+	}
+	
+	//ROS_INFO("sono qui2");
+	
+	else{
+		cmd_vel_pub.publish(vel_received);
+		ROS_INFO("Messaggio pubblicato correttamente");
+	}
+	
+	
+	ROS_INFO("Messaggio pubblicato correttamente");
 
 	//pubblico il comando di velocità che non fa andare a sbattere
-	cmd_vel_pub.publish(msg_final);
+	//cmd_vel_pub.publish(msg_final);
 	
 }
 
@@ -66,7 +94,7 @@ void transformOperations(sensor_msgs::PointCloud c, Eigen::Isometry2f lm) {
 		obstacle_position_rframe = lm * obstacle_position;	//posizione dell'ostacolo nel robot frame, 
 
 		obstacle_distance = sqrt(point.x * point.x + point.y * point.y);	//norm(t_i - p_i)
-		float force_mod = 1/(obstacle_distance * obstacle_distance);	//1/norm(t_i - p_i) modulo forza risultante
+		force_mod = 1/(obstacle_distance * obstacle_distance);	//1/norm(t_i - p_i) modulo forza risultante
 		
 		force_x += obstacle_position(0) * force_mod;
 		force_y += obstacle_position(1) * force_mod;
@@ -77,12 +105,14 @@ void transformOperations(sensor_msgs::PointCloud c, Eigen::Isometry2f lm) {
 	force_x = -force_x;
 	force_y = -force_y;
 
-	avoidanceOperations(force_x, force_y, obstacle_distance);
+	avoidanceOperations(force_x, force_y, obstacle_distance,force_mod);
 }
 
 
 void cmdVelCallback(const geometry_msgs::Twist::ConstPtr& msg){
-
+	
+	
+	
 	//ho ricevuto il comando di velocità 	
 	cmd_received = true;	
 	vel_received = *msg;
@@ -94,7 +124,10 @@ void cmdVelCallback(const geometry_msgs::Twist::ConstPtr& msg){
 
 
 void laserScanCallback(const sensor_msgs::LaserScan::ConstPtr& msg){
-
+		
+		
+		ROS_INFO("ECCOMI");
+		
 		//devo ricevere il comando di velocità
 		if (!cmd_received) 
 			return;
@@ -142,7 +175,7 @@ int main(int argc, char **argv){
 		ROS_INFO("Ho avviato il publisher");
 		
 		//creo il subscriber per ricevere comandi laser scan 
-		ros::Subscriber sub1 = n.subscribe("laser_scan", 1000, laserScanCallback);
+		ros::Subscriber sub1 = n.subscribe("base_scan", 1000, laserScanCallback);
 		
 		//creo il subscriber per ricevere comandi di velocità
 		ros::Subscriber sub2 = n.subscribe("cmd_vel", 1000, cmdVelCallback);
