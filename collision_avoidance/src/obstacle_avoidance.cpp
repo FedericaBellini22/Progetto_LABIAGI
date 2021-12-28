@@ -1,4 +1,3 @@
-
 #include "ros/ros.h"
 #include "std_msgs/String.h"
 #include <geometry_msgs/Twist.h>
@@ -23,10 +22,9 @@ float force_mod = 0;
 ros::Publisher cmd_vel_pub;
 
 
-void avoidanceOperations(float fx, float fy, float ob_dist,float fm) {
-	
-	
-	ROS_INFO("CIAOOOO1");
+void avoidanceOperations(float fx, float fy, float ob_dist, float fm) {
+
+	//ROS_INFO("CIAOOOO1");
 	
 	//messaggio per pubblicare la velocità modificata che non fa andare a sbattere il robot
 	geometry_msgs::Twist msg_final;
@@ -169,20 +167,19 @@ int main(int argc, char **argv){
 		ros::NodeHandle n;
 		ros::Rate loop_rate(10);
 		
-		//dico al publisher di inviare i comandi di velocità
-		cmd_vel_pub = n.advertise<geometry_msgs::Twist>("cmd_vel", 1000);
-		
 		ROS_INFO("Ho avviato il publisher");
 		
 		//creo il subscriber per ricevere comandi laser scan 
 		ros::Subscriber sub1 = n.subscribe("base_scan", 1000, laserScanCallback);
 		
 		//creo il subscriber per ricevere comandi di velocità
-		ros::Subscriber sub2 = n.subscribe("cmd_vel", 1000, cmdVelCallback);
+		ros::Subscriber sub2 = n.subscribe("avoidance_cmd_vel", 1000, cmdVelCallback);
+		//MEMO: rosrun teleop_twist_keyboard teleop_twist_keyboard.py cmd_vel:=avoidance_cmd_vel
 		
-		//...
+		//dico al publisher di inviare i comandi di velocità
+		cmd_vel_pub = n.advertise<geometry_msgs::Twist>("cmd_vel", 1000);
 
-		ROS_INFO("Inviare al topic /cmd_vel il comando per far muovere il robot");
+		ROS_INFO("Inviare al topic /avoidance_cmd_vel il comando per far muovere il robot");
 		ros::spin();
 		
 		return 0;
