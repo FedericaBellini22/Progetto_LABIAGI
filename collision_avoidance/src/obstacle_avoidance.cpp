@@ -23,8 +23,39 @@ ros::Publisher cmd_vel_pub;
 
 
 void avoidanceOperations(float fx, float fy, float ob_dist, float fm) {
+	
+	geometry_msgs::Twist msg_final;
+	ROS_INFO("ob_dist= %f",ob_dist);
+	
+	
+	//robot decide di girare a questa distanza
+	float target = ob_dist/4;
+	ROS_INFO("Voglio deviare l'ostacolo a questa distanza: %f\n",target);
+	
+	//rotazione robot
+	msg_final.angular.z = target * fy/40;
+	fx *= abs(vel_received_x)/400;
+	
+	if (fx < 0){
+			msg_final.linear.x = fx + vel_received_x;
+	}
+	
+	else{
+			msg_final.linear.x = -fx + vel_received_x;
+	}
+	
+	msg_final.angular.z += vel_received_angular;
+	
+	msg_final.linear.y = fy + vel_received_y;
+	
+	cmd_vel_pub.publish(msg_final);
+	
+	
+	
+	
+	
 
-	//ROS_INFO("CIAOOOO1");
+	/*ROS_INFO("CIAOOOO1");
 	
 	//messaggio per pubblicare la velocità modificata che non fa andare a sbattere il robot
 	geometry_msgs::Twist msg_final;
@@ -63,7 +94,7 @@ void avoidanceOperations(float fx, float fy, float ob_dist, float fm) {
 	ROS_INFO("Messaggio pubblicato correttamente");
 
 	//pubblico il comando di velocità che non fa andare a sbattere
-	//cmd_vel_pub.publish(msg_final);
+	//cmd_vel_pub.publish(msg_final);*/
 	
 }
 
