@@ -9,7 +9,6 @@
 #include "geometry_utils_fd.h"
 #include <sstream>
 
-#define CONSTANT_1 2
 
 bool cmd_received = false;
 geometry_msgs::Twist vel_received;
@@ -22,19 +21,22 @@ float force_mod = 0;
 ros::Publisher cmd_vel_pub;
 
 
-void avoidanceOperations(float fx, float fy, float ob_dist, float fm) {
+void avoidanceOperations(float fx, float fy, float ob_dist) {
 	
 	geometry_msgs::Twist msg_final;
-	ROS_INFO("ob_dist= %f",ob_dist);
+	//ROS_INFO("ob_dist= %f",ob_dist);
 	
+	float d = ob_dist/20;
 	
 	//robot decide di girare a questa distanza
-	float target = ob_dist/4;
-	ROS_INFO("Voglio deviare l'ostacolo a questa distanza: %f\n",target);
+	/*if (ob_dist > 3){
+	
+		ROS_INFO("Voglio deviare l'ostacolo a questa distanza: %f\n",d);
+	}*/
 	
 	//rotazione robot
-	msg_final.angular.z = target * fy/40;
-	fx *= abs(vel_received_x)/400;
+	msg_final.angular.z = d * fy/60;
+	fx *= abs(vel_received_x)/600;
 	
 	if (fx < 0){
 			msg_final.linear.x = fx + vel_received_x;
@@ -52,57 +54,13 @@ void avoidanceOperations(float fx, float fy, float ob_dist, float fm) {
 	
 	
 	
-	
-	
-
-	/*ROS_INFO("CIAOOOO1");
-	
-	//messaggio per pubblicare la velocità modificata che non fa andare a sbattere il robot
-	geometry_msgs::Twist msg_final;
-	
-	msg_final.linear.x = vel_received_x + fx;
-	
-	
-	//azzero la velocità in prossimità dell'ostacolo
-	if (signbit(msg_final.linear.x) != signbit(vel_received_x))
-		msg_final.linear.x = 0;
-	
-	//operazioni per deviare ostacolo
-	//componenti lineari
-	
-	msg_final.linear.y = vel_received_y + fy;
-	msg_final.linear.z = vel_received.linear.z;
-	 
-	//componente angolare
-	msg_final.angular = vel_received.angular ;
-	
-	if (ob_dist < 0.5){ 
-		ROS_INFO("sono qui1");
-		msg_final.angular.z = -fm * CONSTANT_1;
-		
-		cmd_vel_pub.publish(msg_final);
-	}
-	
-	//ROS_INFO("sono qui2");
-	
-	else{
-		cmd_vel_pub.publish(vel_received);
-		ROS_INFO("Messaggio pubblicato correttamente");
-	}
-	
-	
-	ROS_INFO("Messaggio pubblicato correttamente");
-
-	//pubblico il comando di velocità che non fa andare a sbattere
-	//cmd_vel_pub.publish(msg_final);*/
-	
 }
 
 
 void transformOperations(sensor_msgs::PointCloud c, Eigen::Isometry2f lm) {
 
 	Eigen::Vector2f obstacle_position;
-	Eigen::Vector2f obstacle_position_rframe;
+	
 
 	float force_x = 0.0;
 	float force_y = 0.0;
@@ -120,13 +78,13 @@ void transformOperations(sensor_msgs::PointCloud c, Eigen::Isometry2f lm) {
 		obstacle_position(0) = point.x;
 		obstacle_position(1) = point.y;
 		
-		obstacle_position_rframe = lm * obstacle_position;	//posizione dell'ostacolo nel robot frame, 
+		obstacle_position = lm * obstacle_position;	//posizione dell'ostacolo nel robot frame, 
 
 		obstacle_distance = sqrt(point.x * point.x + point.y * point.y);	//norm(t_i - p_i)
-		force_mod = 1/(obstacle_distance * obstacle_distance);	//1/norm(t_i - p_i) modulo forza risultante
 		
-		force_x += obstacle_position(0) * force_mod;
-		force_y += obstacle_position(1) * force_mod;
+		
+		force_x += (obstacle_position(0) / obstacle_distance) / obstacle_distance;	
+		force_y += (obstacle_position(1) / obstacle_distance) / obstacle_distance ; 
 
 	}
 	
@@ -134,13 +92,11 @@ void transformOperations(sensor_msgs::PointCloud c, Eigen::Isometry2f lm) {
 	force_x = -force_x;
 	force_y = -force_y;
 
-	avoidanceOperations(force_x, force_y, obstacle_distance,force_mod);
+	avoidanceOperations(force_x, force_y, obstacle_distance);
 }
 
 
 void cmdVelCallback(const geometry_msgs::Twist::ConstPtr& msg){
-	
-	
 	
 	//ho ricevuto il comando di velocità 	
 	cmd_received = true;	
@@ -154,8 +110,7 @@ void cmdVelCallback(const geometry_msgs::Twist::ConstPtr& msg){
 
 void laserScanCallback(const sensor_msgs::LaserScan::ConstPtr& msg){
 		
-		
-		ROS_INFO("ECCOMI");
+		//ROS_INFO("ECCOMI");
 		
 		//devo ricevere il comando di velocità
 		if (!cmd_received) 
@@ -204,8 +159,8 @@ int main(int argc, char **argv){
 		ros::Subscriber sub1 = n.subscribe("base_scan", 1000, laserScanCallback);
 		
 		//creo il subscriber per ricevere comandi di velocità
-		ros::Subscriber sub2 = n.subscribe("avoidance_cmd_vel", 1000, cmdVelCallback);
-		//MEMO: rosrun teleop_twist_keyboard teleop_twist_keyboard.py cmd_vel:=avoidance_cmd_vel
+		ros::Subscriber sub2 = n.subscribe("avoid_cmd_vel", 1000, cmdVelCallback);
+		//MEMO: rosrun teleop_twist_keyboard teleop_twist_keyboard.py cmd_vel:=avoid_cmd_vel
 		
 		//dico al publisher di inviare i comandi di velocità
 		cmd_vel_pub = n.advertise<geometry_msgs::Twist>("cmd_vel", 1000);
@@ -215,4 +170,3 @@ int main(int argc, char **argv){
 		
 		return 0;
 }
-
