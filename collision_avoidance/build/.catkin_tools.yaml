@@ -1,0 +1,6 @@
+devel_space: /home/cristiana/catkin_ws/src/Progetto_LABIAGI/collision_avoidance/devel
+install: false
+install_space: /home/cristiana/catkin_ws/src/Progetto_LABIAGI/collision_avoidance/install
+profile: default
+source_space: /home/cristiana/catkin_ws/src/Progetto_LABIAGI/collision_avoidance/src
+workspace: /home/cristiana/catkin_ws/src/Progetto_LABIAGI/collision_avoidance
