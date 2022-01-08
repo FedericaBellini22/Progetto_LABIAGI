@@ -1,1 +1,0 @@
-/home/cristiana/catkin_ws/src/Progetto_LABIAGI/collision_avoidance/devel/.private/catkin_tools_prebuild/setup.bash
