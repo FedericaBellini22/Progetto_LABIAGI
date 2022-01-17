@@ -32,19 +32,14 @@ void avoidanceOperations(float fx, float fy, float ob_dist) {
 	
 		ROS_INFO("Voglio deviare l'ostacolo a questa distanza: %f\n",d);
 	}*/
-	
-	//rotazione robot
+
+	//rotazione
 	msg_final.angular.z = d * fy/60;
-	fx *= abs(vel_received_x)/600;
-	
-	if (fx < 0) {
-		msg_final.linear.x = fx + vel_received_x;
-	}
-	else {
-		msg_final.linear.x = -fx + vel_received_x;
-	}
-	
 	msg_final.angular.z += vel_received_angular;
+	//componenti lineari
+	fx *= abs(vel_received_x)/600;
+	// \sum_i fi + cmd_vel
+	msg_final.linear.x = fx + vel_received_x;
 	msg_final.linear.y = fy + vel_received_y;
 	
 	cmd_vel_pub.publish(msg_final);	
@@ -75,10 +70,10 @@ void transformOperations(sensor_msgs::PointCloud c, Eigen::Isometry2f lm) {
 		obstacle_distance = sqrt(point.x * point.x + point.y * point.y); //norm(t_i - p_i)
 		
 		force_x += (obstacle_position(0) / obstacle_distance) / obstacle_distance;	
-		force_y += (obstacle_position(1) / obstacle_distance) / obstacle_distance ; 
+		force_y += (obstacle_position(1) / obstacle_distance) / obstacle_distance; 
 	}
 	
-	//prendiamo le forze uguali in modulo ma con verso opposto per far fermare il robot
+	//prendiamo le forze uguali in modulo ma con verso opposto
 	force_x = -force_x;
 	force_y = -force_y;
 
@@ -87,7 +82,7 @@ void transformOperations(sensor_msgs::PointCloud c, Eigen::Isometry2f lm) {
 
 
 void cmdVelCallback(const geometry_msgs::Twist::ConstPtr& msg) {
-	
+
 	//ho ricevuto il comando di velocità 	
 	cmd_received = true;	
 	vel_received = *msg;
