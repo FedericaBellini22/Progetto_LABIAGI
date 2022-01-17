@@ -73,6 +73,6 @@ Per visualizzare in tempo reale il laser_scan con il tool Rviz:
    $ rosrun rviz rviz
    ```
 
-2. Nelle Global Options del pannello a sinistra, selezionare Fixed Frame $\to$ base_footprint.
+2. Nelle Global Options del pannello a sinistra, selezionare Fixed Frame -> base_footprint.
 
-3. Premere il tasto Add $\to$ By topic $\to$ /base_scan.
+3. Premere il tasto Add -> By topic -> /base_scan.
